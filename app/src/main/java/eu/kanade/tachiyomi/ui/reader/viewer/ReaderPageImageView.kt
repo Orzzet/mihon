@@ -36,6 +36,7 @@ import com.github.chrisbanes.photoview.PhotoView
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.tachiyomi.data.coil.cropBorders
 import eu.kanade.tachiyomi.data.coil.customDecoder
+import eu.kanade.tachiyomi.ui.reader.DoubleTapExplainHelper
 import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonSubsamplingImageView
 import eu.kanade.tachiyomi.util.system.animatorDurationScale
 import eu.kanade.tachiyomi.util.view.isVisibleOnScreen
@@ -351,14 +352,30 @@ open class ReaderPageImageView @JvmOverloads constructor(
 
             if (this is PhotoView) {
                 setScaleLevels(1F, 2F, MAX_ZOOM_SCALE)
-                // Force 2 scale levels on double tap
+                val imageView = this
                 setOnDoubleTapListener(
                     object : GestureDetector.SimpleOnGestureListener() {
+                        private var firstX = 0f
+                        private var firstY = 0f
+
                         override fun onDoubleTap(e: MotionEvent): Boolean {
-                            if (scale > 1F) {
-                                setScale(1F, e.x, e.y, true)
-                            } else {
-                                setScale(2F, e.x, e.y, true)
+                            firstX = e.x
+                            firstY = e.y
+                            return true
+                        }
+
+                        override fun onDoubleTapEvent(e: MotionEvent): Boolean {
+                            if (e.action == MotionEvent.ACTION_UP) {
+                                val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+                                    ?: return true
+                                DoubleTapExplainHelper.sendExplainRequest(
+                                    context,
+                                    bitmap,
+                                    firstX,
+                                    firstY,
+                                    e.x,
+                                    e.y,
+                                )
                             }
                             return true
                         }
