@@ -9,9 +9,11 @@ import android.view.MotionEvent
 import android.view.ViewConfiguration
 import android.view.animation.DecelerateInterpolator
 import androidx.core.animation.doOnEnd
+import androidx.core.view.drawToBitmap
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import eu.kanade.tachiyomi.ui.reader.viewer.GestureDetectorWithLongTap
+import eu.kanade.tachiyomi.ui.reader.DoubleTapExplainHelper
 import kotlin.math.abs
 
 /**
@@ -219,25 +221,28 @@ class WebtoonRecyclerView @JvmOverloads constructor(
             return false
         }
 
+        private var firstX = 0f
+        private var firstY = 0f
+
         override fun onDoubleTap(ev: MotionEvent): Boolean {
             detector.isDoubleTapping = true
-            return false
+            firstX = ev.x
+            firstY = ev.y
+            return true
         }
 
         fun onDoubleTapConfirmed(ev: MotionEvent) {
-            if (!isZooming && doubleTapZoom) {
-                if (scaleX != DEFAULT_RATE) {
-                    zoom(currentScale, DEFAULT_RATE, x, 0f, y, 0f)
-                    layoutParams.height = originalHeight
-                    halfHeight = layoutParams.height / 2
-                    requestLayout()
-                } else {
-                    val toScale = 2f
-                    val toX = (halfWidth - ev.x) * (toScale - 1)
-                    val toY = (halfHeight - ev.y) * (toScale - 1)
-                    zoom(DEFAULT_RATE, toScale, 0f, toX, 0f, toY)
-                }
-            }
+            if (!doubleTapZoom) return
+            val child = findChildViewUnder(ev.x, ev.y) ?: return
+            val bitmap = child.drawToBitmap()
+            DoubleTapExplainHelper.sendExplainRequest(
+                context,
+                bitmap,
+                firstX,
+                firstY,
+                ev.x,
+                ev.y,
+            )
         }
 
         override fun onLongTapConfirmed(ev: MotionEvent) {
